@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/basic.html}">
+
+<head>
+    <title>Board Read</title>
+</head>
+
+<div layout:fragment="content">
+    <div class="row mt-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    Board Read
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Bno</span>
+                        <input type="text" class="form-control" th:value="${dto.bno}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Title</span>
+                        <input type="text" class="form-control" th:value="${dto.title}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Content</span>
+                        <textarea class="form-control col-sm-5" rows="5" readonly>[[${dto.content}]]</textarea>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Writer</span>
+                        <input type="text" class="form-control" th:value="${dto.writer}" readonly>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">RegDate</span>
+                        <input type="text" class="form-control" th:value="${#temporals.format(dto.regDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">ModDate</span>
+                        <input type="text" class="form-control" th:value="${#temporals.format(dto.modDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
+                    </div>
+
+                    <div class="my-4">
+                        <div class="float-end" th:with="link = ${pageRequestDTO.getLink()}">
+                            <a th:href="|@{/board/list}?${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-primary">List</button>
+                            </a>
+                            <a th:href="|@{/board/modify(bno=${dto.bno})}&${link}|" class="text-decoration-none">
+                                <button type="button" class="btn btn-secondary">Modify</button>
+                            </a>
+                        </div>
+                    </div>
+
+
+                </div><!--end card body-->
+
+
+
+            </div><!--end card-->
+        </div><!-- end col-->
+    </div><!-- end row-->
+
+    <!-- ★★★ 댓글 ★★★ -->
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <!-- (1) 등록 버튼 -->
+            <div class="my-4 ">
+                <button class="btn btn-info  addReplyBtn">ADD REPLY</button>
+            </div>
+            <!-- (2) 댓글 목록 -->
+            <ul class="list-group replyList">
+            </ul>
+        </div>
+    </div>
+    <!-- (3) 페이징 번호 -->
+    <div class="row mt-3">
+        <div class="col">
+            <ul class="pagination replyPaging">
+            </ul>
+        </div>
+    </div>
+
+    <!-- ★★★ 댓글 등록 모달 ★★★ -->
+    <div class="modal registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Register Reply</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Reply Text</span>
+                        <input type="text" class="form-control replyText" >
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Replyer</span>
+                        <input type="text" class="form-control replyer" >
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary registerBtn">Register</button>
+                    <button type="button" class="btn btn-outline-dark closeRegisterBtn" >Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end regist modal -->
+
+    <!-- ★★★ 댓글 수정 모달 ★★★ -->
+    <div class="modal modifyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title replyHeader"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">Reply Text</span>
+                        <input type="text" class="form-control modifyText" >
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-info modifyBtn">Modify</button>
+                    <button type="button" class="btn btn-danger removeBtn">Remove</button>
+                    <button type="button" class="btn btn-outline-dark closeModifyBtn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--modifyModal -->
+
+    <script src="http://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/js/reply.js"></script> <!-- 바로 사용하기 위한 목적으로 바디에! -->
+
+</div>
+
+
+<script layout:fragment="script" th:inline="javascript">
+
+        const bno = [[${dto.bno}]]
+        // Thymeleaf가 서버에서 html 만들어줄 때 dto.bno=10이라고 하면 const bno=10 이 만들어짐
+        // 즉, 현재 보고 있는 게시글의 번호를 JavaScript가 알아내는 것
+
+        const replyList = document.querySelector('.replyList') /* 댓글 목록 DDM */
+        // 74번째 줄 - 댓글이 실제로 들어갈 빈 공간 <ul>을 찾아서 댓글을 넣음
+        const replyPaging = document.querySelector('.replyPaging') /* 페이지 목록 DDM */
+        // 81번째 줄
+
+        console.log("bno=" + bno)
+
+        // get1(bno)
+        // console.log(get1(bno))
+
+        // get1(bno).then(data => {
+        //     console.log(data)
+        // }).catch( e => {
+        //     console.error(e)
+        // })
+
+
+        /* ★★★ 댓글 목록 출력 ★★★ */
+        /* 서버에서 받은 댓글 데이터를 HTML로 바꿔주는 역할 */
+        function printList(dtoList){
+            // dtoList : 서버에서 받아온 댓글 목록
+            let str = '';
+
+            if(dtoList && dtoList.length > 0){
+
+                for (const dto of dtoList) { // 반복문이 돌면서 HTML을 만듦
+
+                    str += `<li class="list-group-item d-flex replyItem">
+                      <span class="col-2">${dto.rno}</span>
+                      <span class="col-6" data-rno="${dto.rno}">${dto.replyText}</span>
+                      <span class="col-2">${dto.replyer}</span>
+                      <span class="col-2">${dto.regDate} </span>
+                    </li>`
+                }
+            }
+            replyList.innerHTML = str
+        }
+
+        /* ★★★ 댓글 페이지 번호 출력 ★★★ */
+        function printPages(data){
+
+            //pagination
+            let pageStr = '';
+
+            if(data.prev) {
+                pageStr +=`<li class="page-item"><a class="page-link" data-page=
+                "${data.start-1}">PREV</a></li>`
+            }
+
+            for(let i = data.start; i <= data.end; i++){
+                pageStr +=`<li class="page-item ${i == data.page
+                        ?"active":""} ">
+                    <a class="page-link"
+                        data-page="${i}">${i}</a></li>`
+            }
+
+            if(data.next) {
+                pageStr +=`<li class="page-item"><a class="page-link"
+                            data-page="${data.end +1}">NEXT</a></li>`
+            }
+            replyPaging.innerHTML = pageStr
+        }
+
+        /* ★★★ 댓글 목록을 가져오는 중심 함수 ★★★ */
+        /* getList()가 데이터를 가져오고, printReplies()가 그 데이터를 화면에 출력하도록 연결 */
+        function printReplies(page,size,goLast){
+
+            getList({bno, page,size, goLast}).then(
+                data => {
+                    // console.log(data)
+                    printList(data.dtoList) // 목록(list)처리
+                    printPages(data)
+                }
+            ).catch(e => {
+                console.error(e)
+            })
+
+        }
+
+        printReplies(1,10, true) // "댓글 1페이지부터 요청하되, goLast가 true니까 마지막 페이지를 계산해서 마지막 댓글 페이지를 보여줘.""
+
+
+        /* ★★★ 댓글 등록 ★★★ */
+        const registerModal = new bootstrap.Modal(document.querySelector(".registerModal"))
+
+        const registerBtn = document.querySelector(".registerBtn")
+        const replyText = document.querySelector(".replyText")
+        const replyer = document.querySelector(".replyer")
+        const closeRegisterBtn = document.querySelector(".closeRegisterBtn")
+
+
+        document.querySelector(".addReplyBtn").addEventListener("click", function (e){
+            registerModal.show()
+        },false) // 71번째 줄
+
+        closeRegisterBtn.addEventListener("click", function (e){
+            registerModal.hide()
+        },false)
+
+        // (1) register 버튼 누르면
+        registerBtn.addEventListener("click", function(e){
+            const replyObj = {
+                bno:bno,
+                replyText:replyText.value,
+                replyer:replyer.value}
+                // (2) 댓글 정보를 객체로 만들고
+            addReply(replyObj).then(result => {
+                // (3) reply.js의 axios.post(`/replies/`, replyobj) 실행
+                alert(result.rno)
+                registerModal.hide()
+                replyText.value = ''
+                replyer.value =''
+                printReplies(1,10, true) // 방금 등록한 댓글이 있는 페이지 보여주기
+            }).catch(e => {
+                alert("Exception...")
+            })
+        }, false)
+
+        /* ★★★ 페이지 목록에서 번호 클릭 ★★★ */
+        let page = 1
+        let size = 10
+
+        replyPaging.addEventListener("click", function (e){
+            // 페이지 번호를 클릭했을 때 실행
+
+            e.preventDefault()
+            e.stopPropagation()
+
+            const target = e.target
+
+            if(!target || target.tagName != 'A'){
+                return
+            }
+
+            const pageNum = target.getAttribute("data-page")
+            // 사용자가 3을 클릭하면 여기서 pageNum=3을 가져옴
+            page = pageNum
+            printReplies(page, size) // printReplies(3,10)
+            // getList() 호출 -> GET /replies/list/게시글번호?page=3&size=10
+            // -> 3페이지 댓글 가져옴
+
+
+        },false)
+
+        /* ★★★ 댓글 수정 ★★★ */
+        const modifyModal = new bootstrap.Modal(document.querySelector(".modifyModal"))
+
+        const replyHeader = document.querySelector(".replyHeader")
+        const modifyText = document.querySelector(".modifyText")
+        const modifyBtn = document.querySelector(".modifyBtn")
+        const removeBtn = document.querySelector(".removeBtn")
+        const closeModifyBtn = document.querySelector(".closeModifyBtn")
+
+        replyList.addEventListener("click", function (e){
+        // 댓글 클릭하면 실행
+            e.preventDefault()
+            e.stopPropagation()
+
+            const target = e.target
+
+            if(!target || target.tagName != 'SPAN'){
+                return
+            }
+
+            const rno = target.getAttribute("data-rno")
+            // 사용자가 누른 댓글 번호를 가져옴
+            if(!rno){
+                return
+            }
+
+            getReply(rno).then(reply => { //댓글의 내용을 모달창에 채워서 보여주는
+                //GET /replies/5
+                // Controller의 @GetMapping("/{rno}") -> 5번 댓글 조회
+                console.log(reply)
+                replyHeader.innerHTML = reply.rno
+                modifyText.value = reply.replyText
+                modifyModal.show()
+                // 모달에 댓글 번호와 내용을 넣어줌
+
+            }).catch(e => alert('error'))
+
+        },false)
+
+        /* ★★★ 댓글 수정 버튼 ★★★ */
+        modifyBtn.addEventListener("click", function(e) {
+
+            const replyObj = {
+                bno:bno,
+                rno:replyHeader.innerHTML,
+                replyText:modifyText.value}
+            // 수정할 데이터를 만듦
+
+            modifyReply(replyObj).then(result => {
+                // -> reply.js의 axios.put(`/replies/${replyobj.rno}`, replyobj)
+                // PUT /replies/5 -> Controller의 PutMapping("/{rno}") -> 댓글 수정
+                alert(result.rno+' 댓글이 수정되었습니다.')
+                replyText.value = ''
+                modifyModal.hide()
+                printReplies(page, size)
+                // 수정된 댓글 목록을 다시 가져와 화면을 갱신
+
+            }).catch(e => {
+                console.log(e)
+            })
+        },false)
+
+        closeModifyBtn.addEventListener("click", function(e){
+
+            modifyModal.hide()
+
+        }, false)
+
+        /* ★★★ 삭제 버튼 ★★★ */
+        removeBtn.addEventListener("click", function(e) {
+            console.log("삭제할 rno =", replyHeader.innerHTML)
+
+            removeReply(replyHeader.innerHTML).then(result => {
+            // removeReply(5) -> reply.js의 axios.delete(`/replies/5`)
+            // Controller의 @DeleteMapping("/{rno}") 로 삭제
+                alert(result.rno +' 댓글이 삭제되었습니다.')
+                replyText.value = ''
+                modifyModal.hide()
+
+                page = 1
+                printReplies(page, size)  // 댓글 목록 다시 불러오기
+
+            }).catch(e => {
+                console.log(e)
+            })
+        },false)
+
+</script>

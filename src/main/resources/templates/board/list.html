@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/basic.html}">
+
+<div layout:fragment="content">
+
+    <!-- ★★★ 검색창 ★★★ -->
+    <div class="row mt-3">
+        <form action="/board/list" method="get">
+        <!-- 사용자가 '제목'에 '스프링' 입력하고 ★search★ -> /board/list?type=t&keyword=스프링&size=10 요청이 만들어짐 -->
+            <div class="col">
+                <input type="hidden" name="size" th:value="${pageRequestDTO.size}">
+                <!-- 현재 PageRequestDTO의 size값을 html의 value에 넣어라 -->
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <select class="form-select" name="type">
+                            <option value="">---</option>
+                            <option value="t" th:selected="${pageRequestDTO.type =='t'}">제목</option>
+                            <!-- pageRequestDTO.type이 't'라면 <option value="t" selected> -> 검색 후에도 '제목'이 유지 -->
+                            <option value="c" th:selected="${pageRequestDTO.type =='c'}">내용</option>
+                            <option value="w" th:selected="${pageRequestDTO.type =='w'}">작성자</option>
+                            <option value="tc" th:selected="${pageRequestDTO.type =='tc'}">제목 내용</option>
+                            <option value="tcw" th:selected="${pageRequestDTO.type =='tcw'}">제목 내용 작성자</option>
+                        </select>
+                    </div>
+                    <input type="text" class="form-control" name="keyword" th:value="${pageRequestDTO.keyword}">
+                    <!-- 현재 PageRequestDTO의 keyword값을 html의 value에 넣어라 -->
+                    <!-- 검색하고 다시 화면 보여줄 때 input 안에 그대로 '스프링'이 남아있음 -->
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary searchBtn" type="submit">Search</button>
+                        <button class="btn btn-outline-secondary clearBtn" type="button">Clear</button>
+                    </div>
+                </div>
+                <!-- ★name="size","type"의 값을 PageRequestDTO의 int size, String type 필드 이름에 맞춰서 넣어줌★ -->
+            </div>
+        </form>
+    </div>
+
+    <!-- ★★★ 실제 게시글 ★★★ -->
+    <div class="row mt-3">
+        <div class="col">
+
+            <div class="card">
+                <div class="card-header">
+                    Board List
+                </div>
+                <div class="card-body" >
+
+                    <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title">Board List </h5>
+                    <a th:href="@{/board/register}" class="btn btn-primary">
+                        Register
+                    </a>
+                    </div>
+
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Bno</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Writer</th>
+                            <th scope="col">RegDate</th>
+                        </tr>
+                        </thead>
+
+                        <tbody th:with="link = ${pageRequestDTO.getLink()}">
+
+                        <tr th:each="dto:${responseDTO.dtoList}">
+                        <!-- Controller에서 model.addAttribute로 responseDTO 꺼낼 수 있음 -->
+                        <!-- responseDTO는 private List<E> dtoList;로 목록 리스트 가져올 수 있음(반복)-->
+                            <th scope="row">[[${dto.bno}]]</th>
+                            <td>
+                                <a th:href="|@{/board/read(bno =${dto.bno})}&${link}|">
+                                    [[${dto.title}]]
+                                </a>
+                                <span th:if="${dto.replyCount > 0}"
+                                      class="badge progress-bar-success"
+                                      style="background-color: #0a53be">
+                                    [[${dto.replyCount}]]
+                                </span>
+                            </td>
+                            <td>[[${dto.writer}]]</td>
+                            <td>[[${#temporals.format(dto.regDate, 'yyyy-MM-dd')}]]</td>
+                            <!-- LocalDateTime을 날짜 문자열로 바꿈 -->
+                        </tr>
+
+                        </tbody>
+                    </table>
+
+                    <!-- ★★★ Pagination 부분 ★★★ -->
+                    <div class="float-end">
+                        <ul class="pagination flex-wrap">
+
+                            <li class="page-item" th:if="${responseDTO.prev}">
+                                <a class="page-link" th:data-num="${responseDTO.start -1}">Previous</a>
+                            </li>
+                            <!-- "responseDTO.prev가 true일 때만 Previous 버튼을 보여줘." -->
+
+                            <th:block th:each="i: ${#numbers.sequence(responseDTO.start, responseDTO.end)}">
+                            <!-- start=1 end=10 이면 [1 2 3 ... 9 10] 만듦 -->
+                                <li th:class="${responseDTO.page == i}?'page-item active':'page-item'" >
+                                <!-- (삼항연산자) 현재 페이지 == 버튼 번호? -> yes = active 스타일, no = 일반 -->
+                                    <a class="page-link"  th:data-num="${i}">[[${i}]]</a>
+                                    <!-- JavaScript가 이걸 가져감 : const num = target.getAttribute("data-num") -->
+                                    <!-- data-num="3" -> num=3 -> hidden input page=3 생성 -> form.submit() -> GET /board/list?page=3 ...-->
+                                </li>
+                            </th:block>
+
+                            <li class="page-item" th:if="${responseDTO.next}">
+                                <a class="page-link"  th:data-num="${responseDTO.end + 1}">Next</a>
+                            </li>
+                            <!-- "responseDTO.next가 true일 때만 Next 버튼을 보여줘." -->
+                        </ul>
+                    </div>
+
+                </div><!--end card body-->
+            </div><!--end card-->
+        </div><!-- end col-->
+    </div><!-- end row-->
+
+
+    <!-- ★★★ 등록/수정/삭제 성공 메세지 ★★★ -->
+    <div class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">성공 메세지</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>수정되었습니다.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-primary">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<script layout:fragment="script" th:inline="javascript">
+
+    document.querySelector(".pagination").addEventListener("click", function (e) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const target = e.target
+
+        if(target.tagName !== 'A') {
+            return
+        }
+
+        const num = target.getAttribute("data-num")
+
+        const formObj = document.querySelector("form")
+
+        formObj.innerHTML += `<input type='hidden' name='page' value='${num}'>`
+        formObj.submit();
+        // 3페이지 누르면 <input type="hidden" name="page" value="3"> 가 form에 추가
+        // -> GET /board/list?page=3&size=10... 이렇게 다시 요청됨
+
+    },false)
+
+    document.querySelector(".clearBtn").addEventListener("click", function (e){
+        e.preventDefault()
+        e.stopPropagation()
+
+        self.location ='/board/list'
+
+    },false)
+
+    //show modal
+    const result = [[${result}]]
+
+    const modal = new bootstrap.Modal(document.querySelector(".modal"))
+
+    if(result){
+        modal.show()
+    }
+
+
+
+</script>

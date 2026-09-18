@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout1.html}">
+<head>
+    <meta charset="UTF-8">
+    <title>ex1</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+    <h4>[[${list}]]</h4>
+    <hr/>
+    <h4 th:text="${list}"></h4>
+
+    <div th:with="num1=${10}, num2=${20}">
+        <h4 th:text="${num1 + num2}"></h4>
+    </div>
+
+    <ul>
+        <li th:each="str, status : ${list}">
+        <span th:if="${status.odd}">ODD -- [[${str}]]</span>
+        <span th:unless="${status.odd}">EVEN -- [[${str}]]</span>
+        </li>
+    </ul>
+
+    <a th:href="@{/hello(name='AAA', age=16)}">hello로 이동</a>
+
+</div>
+
+</body>
+</html>

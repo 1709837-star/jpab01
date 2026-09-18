@@ -1,0 +1,81 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'jpab01'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+ext {
+    queryDslVersion = '5.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:3.4.0'
+
+    // Querydsl — jakarta 분류자를 반드시 붙인다
+    implementation "com.querydsl:querydsl-jpa:5.1.0:jakarta"
+    annotationProcessor(
+            "com.querydsl:querydsl-apt:5.1.0:jakarta",
+            'jakarta.persistence:jakarta.persistence-api',
+            'jakarta.annotation:jakarta.annotation-api')
+
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'org.modelmapper:modelmapper:3.2.6'
+
+//    implementation 'io.springfox:springfox-boot-starter:3.0.0'
+//    implementation 'io.springfox:springfox-swagger-ui:3.0.0'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+//// Querydsl 이 생성한 Q 클래스를 소스 경로에 포함시킨다
+//sourceSets {
+//    main {
+//        java {
+//            srcDirs = ['src/main/java', "${layout.buildDirectory.get()}" +
+//                    '/generated']
+//        }
+//    }
+//}
+
+tasks.withType(JavaCompile).configureEach {
+    options.generatedSourceOutputDirectory =
+            file("${layout.buildDirectory.get()}/generated")
+}
+
+tasks.named('clean') {
+    doLast {
+        file("${layout.buildDirectory.get()}/generated").deleteDir()
+    }
+}
