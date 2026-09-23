@@ -28,14 +28,14 @@ public class ReplyRepositoryTests {
         IntStream.rangeClosed(1, 50).forEach(i -> {
             // for(int i=1; i<=100; i++ { 와 동일
 
-            Long bno = 199L; //실제 DB에 있는 bno
+            Long bno = 206L; //실제 DB에 있는 bno
 
             Board board = Board.builder().bno(bno).build();
 
             Reply reply = Reply.builder()
                     .board(board) // bno=100인 Board
-                    .replyText("꿀팁좀")
-                    .replyer("김구")
+                    .replyText("댓글.......")
+                    .replyer("정약용")
                     .build(); // rno는 DB가 자동으로 번호 만들어줌 (Entity에서 설정)
 
             replyRepository.save(reply); // 실제 DB 저장

@@ -1,11 +1,12 @@
-// 댓글 기능에서 브라우저 <-> Spring 서버를 연결해주는 중간 역할
-// ★★★ ReplyController에 있는 API들(register, getList ..)을 JavaScript 함수로 만들어 놓은 것
+/* 댓글 기능에서 브라우저 <-> Spring 서버를 연결해주는 중간 역할 */
+/* ★★★ ReplyController에 있는 API들(register, getList ..)을 JavaScript 함수로 만들어 놓은 것 */
 
+/* 구조 : read.html -> getList() -> reply.js -> axios.get() -> ReplyController */
 // * async function : "이 함수 안에서는 서버 통신같은 비동기 작업을 할거야."
 // * await : "서버에서 응답이 올 때까지 기다렸다가 다음 줄로 가자."
 
 
-// ★ 특정 게시글의 댓글 목록을 가져오는 것 (테스트용)
+/* ★ 특정 게시글의 댓글 목록을 가져오는 것 (테스트용) */
 async function get1(bno) {
 
     const result = await axios.get(`/replies/list/${bno}`)
@@ -13,7 +14,7 @@ async function get1(bno) {
     return result;
 }
 
-// ★ 댓글 목록을 가져오는 실제 핵심 함수
+/* ★ 댓글 목록을 가져오는 실제 핵심 함수 */
 async function getList({bno, page, size, goLast}){
 
     const result = await axios.get(`/replies/list/${bno}`, {params: {page, size}})

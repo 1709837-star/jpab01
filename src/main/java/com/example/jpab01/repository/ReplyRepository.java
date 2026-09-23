@@ -17,4 +17,6 @@ public interface ReplyRepository
     Page<Reply> listOfBoard(Long bno, Pageable pageable);
     // ex) listOfBoard(1L, pageable) : 1번 게시글의 댓글들만 가져와라.
     // r.board.bno : Reply가 가지고 있는 Board의 bno
+
+    void deleteByBoard_Bno(Long bno);
 }

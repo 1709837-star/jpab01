@@ -26,6 +26,7 @@ public class Reply extends BaseEntity {
     private String replyer;
 
     public void changeText(String text) {
+
         this.replyText = text;
     } // 수정할 때 사용하는 메서드
 }

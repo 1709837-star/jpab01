@@ -1,21 +1,19 @@
 package com.example.jpab01.dto;
-/* BoardService 마지막 메소드
-   PageResponseDTO<BoardListReplyCountDTO> listWithReplyCount(PageRequestDTO pageRequestDTO);
-   에서 게시글 옆에 댓글 개수 띄우기 위해서 객체 하나 추가 */
+/* 기존 게시글 목록 DTO + 이미지 목록 추가 */
 
-/* 게시글 목록 페이지에서는 content가 필요없음 */
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class BoardListReplyCountDTO {
+@Builder
+public class BoardListAllDTO {
 
     private Long bno;
 
@@ -27,4 +25,7 @@ public class BoardListReplyCountDTO {
 
     private Long replyCount;
 
+
+    private List<BoardImageDTO> boardImages;
+    // ★ 하나의 게시글 DTO 안에 그 게시글에 연결된 이미지 여러 개를 넣겠다.
 }

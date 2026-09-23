@@ -11,7 +11,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
-// "이 클래스 자케를 테이블로 만들지는 말고, 자식 entity(현재:Board)에게 필드를 물려줘"
+// "이 클래스 자체를 테이블로 만들지는 말고, 자식 entity(현재:Board)에게 필드를 물려줘"
 @EntityListeners(AuditingEntityListener.class)
 // JPA Entity의 생성/수정 같은 이벤트를 감시해서 날짜를 자동으로 넣어주는 역할
 @Getter
