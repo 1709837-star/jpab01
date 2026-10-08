@@ -187,10 +187,10 @@ public class BoardRepositoryTests {
 
         }//end for
 
-        boardRepository.save(board);
+        boardRepository.save(board); // DB에 저장
     }
 
-    /* lazy loading의 이해 */
+    /* lazy loading */
     @Test
     public void testReadWithImages() {
 
@@ -249,9 +249,9 @@ public class BoardRepositoryTests {
 
         Long bno = 206L;
 
-        replyRepository.deleteByBoard_Bno(bno);
+        replyRepository.deleteByBoard_Bno(bno); // 댓글 먼저 삭제
 
-        boardRepository.deleteById(bno);
+        boardRepository.deleteById(bno); // 게시글 삭제
 
     }
 

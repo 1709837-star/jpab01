@@ -48,7 +48,7 @@ public interface BoardRepository
     // @EntityGraph : "이번 조회에서는 어떤 연관 데이터를 같이 가져올지 지정하는 것"
     // 특정 번호의 Board를 가져오면서, 그 Board의 imageSet도 같이 가져와!" //
     // 즉, Board의 fetch=FetchType.LAZY 때문에 BoardImage는 아직 안 가져온 상태.
-    @Query("select b from Board b where b.bno = :bno")
+    @Query("select b from Board b where b.bno =:bno")
     // "Board 중에서 bno가 전달받은 값과 같은 Board를 하나 찾아라."
     Optional<Board> findByIdWithImages(Long bno);
     // 이번에만 이 메서드로 인해 bno가 bno인 Board를 찾고, + imageSet 같이 가져옴

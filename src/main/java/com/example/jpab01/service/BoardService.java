@@ -1,6 +1,10 @@
 package com.example.jpab01.service;
 /* 게시판에서 필요한 기능의 목록/규칙 */
+import com.example.jpab01.domain.Board;
 import com.example.jpab01.dto.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 public interface BoardService {
 
@@ -29,6 +33,52 @@ public interface BoardService {
     // 즉, "게시글 정보에 댓글 개수까지 들어있는 DTO들을 페이지 단위로 묶어서 반환한다."
 
     PageResponseDTO<BoardListAllDTO> listWithAll(PageRequestDTO pageRequestDTO);
+    // ★ 위 함수들의 종결판 : 게시글의 이미지와 댓글의 숫자까지 처리
+
+    /* DTO -> Entity (게시물 등록) */
+    default Board dtoToEntity(BoardDTO boardDTO){
+    // 게시글 등록하는 핵심 비즈니스 로직이라기보다는 BoardDTO를 Board Entity로 변환하는 과정 (이전에는 mapper 사용)
+    // ModelMapper가 단순 필드 변환에는 편하지만, Board와 BoardImage 관계설정 같은 복잡한 변환은 직접 처리하는게 명확해서
+    // default를 붙이면 interface 안에서도 메서드의 실제 내용 작성 가능
+    // DTO <-> Entity 변환 코드를 공통 메서드로 만들어 재사용하려는 의도
+
+        Board board = Board.builder()
+                .bno(boardDTO.getBno())
+                .title(boardDTO.getTitle())
+                .content(boardDTO.getContent())
+                .writer(boardDTO.getWriter())
+                .build();
+
+        if(boardDTO.getFileNames() != null){ // DTO에 첨부파일 목록이 있다면? BoardImage도 만들어야 함
+            boardDTO.getFileNames().forEach(fileName -> {
+                String[] arr = fileName.split("_"); // UUID와 실제 파일명을 분리하는 코드 -> arr[0]=랜덤의 긴 숫자, arr[1]=aaa.jpg
+                board.addImage(arr[0], arr[1]); // Board의 addImage()
+            });
+        }
+        return board; // 마지막엔 첨부파일 정보까지 들어있음
+    }
+
+    /* Entity -> DTO 역변환 메소드 (게시물 조회) */
+    default BoardDTO entityToDTO(Board board) {
+
+        BoardDTO boardDTO = BoardDTO.builder()
+                .bno(board.getBno())
+                .title(board.getTitle())
+                .content(board.getContent())
+                .writer(board.getWriter())
+                .regDate(board.getRegDate())
+                .modDate(board.getModDate())
+                .build();
+
+        List<String> fileNames =
+                board.getImageSet().stream().sorted().map(boardImage ->
+                                boardImage.getUuid()+"_"+boardImage.getFileName())
+                        .collect(Collectors.toList());
+
+        boardDTO.setFileNames(fileNames);
+
+        return boardDTO;
+    }
 }
 
 // ★★★ 괄호 안 = 입력값, 메서드 이름 앞 = 출력값

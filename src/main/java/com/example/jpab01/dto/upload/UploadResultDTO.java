@@ -1,5 +1,5 @@
 package com.example.jpab01.dto.upload;
-
+/* 사용자에게 돌려주는 화면 */
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

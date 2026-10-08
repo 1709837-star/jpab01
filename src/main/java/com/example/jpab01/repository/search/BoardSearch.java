@@ -23,7 +23,11 @@ public interface BoardSearch {
 //                                               String keyword,
 //                                               Pageable pageable);
 
+    // 위 메소드에서 게시글 목록 조회에서 '게시글 정보 + 댓글 수 + 이미지 목록'까지 한 번에 DTO로 만들어서 보내려고
+    // BoardListAllDTO 사용
     Page<BoardListAllDTO> searchWithAll(String[] types,
                                         String keyword,
                                         Pageable pageable);
+
+    // 최종판 : 위 함수들 + 이미지에 대한 정보까지 추가
 }

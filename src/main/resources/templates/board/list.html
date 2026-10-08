@@ -79,6 +79,12 @@
                                       style="background-color: #0a53be">
                                     [[${dto.replyCount}]]
                                 </span>
+
+                                <div th:if="${dto.boardImages != null && dto.boardImages.size() > 0}">
+                                    <img style="width:100px" th:each="boarImage: ${dto.boardImages}"
+                                         th:src="|/s_${boarImage.uuid}_${boarImage.fileName}|">
+                                </div>
+
                             </td>
                             <td>[[${dto.writer}]]</td>
                             <td>[[${#temporals.format(dto.regDate, 'yyyy-MM-dd')}]]</td>

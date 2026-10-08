@@ -54,6 +54,12 @@ dependencies {
     // 섬네일 생성
     implementation 'net.coobird:thumbnailator:0.4.20'
 
+    // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // 타임리프 엑스트라 (Thymeleaf와 Spring Security를 연결)
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

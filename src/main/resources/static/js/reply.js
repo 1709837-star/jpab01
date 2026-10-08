@@ -38,7 +38,7 @@ async function getList({bno, page, size, goLast}){
 }
 
 
-// ★ 댓글 등록 함수
+/* ★ 댓글 등록 함수 */
 async function addReply(replyObj) {
     const response = await axios.post(`/replies/`,replyObj)
     // -> Controller에서 @RequestBody ReplyDTO replyDTO가 여기서 보낸 JSON을 ReplyDTO 객체로 변환
@@ -46,7 +46,7 @@ async function addReply(replyObj) {
 }
 
 
-// ★ 댓글 하나 조회 함수
+/* ★ 댓글 하나 조회 함수 */
 async function getReply(rno) {
     const response = await axios.get(`/replies/${rno}`)
     // getReply(5) -> GET /replies/5 -> Controller -> (...)
@@ -55,7 +55,7 @@ async function getReply(rno) {
 }
 
 
-// ★ 수정 함수
+/* ★ 수정 함수 */
 async function modifyReply(replyObj) {
     const response = await axios.put(`/replies/${replyObj.rno}`, replyObj)
     // PUT /replies/5 -> Controller의 replyDTO.setRno(rno); -> DTO의 rno=5 이렇게 만들어 줌
@@ -63,7 +63,7 @@ async function modifyReply(replyObj) {
 }
 
 
-// ★ 삭제 함수
+/* ★ 삭제 함수 */
 async function removeReply(rno) {
     const response = await axios.delete(`/replies/${rno}`)
     // DELETE /replies/5 -> Controller @DeleteMapping -> reply.Service.remove(rno)

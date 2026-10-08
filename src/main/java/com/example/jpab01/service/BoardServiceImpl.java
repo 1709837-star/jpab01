@@ -33,8 +33,10 @@ public class BoardServiceImpl implements BoardService{
     @Override
     public Long register(BoardDTO boardDTO) {
 
-        Board board = modelMapper.map(boardDTO, Board.class);
+//         Board board = modelMapper.map(boardDTO, Board.class);
         // DTO는 전달용, JPA가 DB에 저장하려면 Entity인 Board가 필요, 형태 변환
+        Board board = dtoToEntity(boardDTO);
+
 
         Long bno = boardRepository.save(board).getBno();
         // JpaRepository가 제공하는 save() 메서드 : Repository에 저장 -> getBno()로 게시글 번호 가져옴
@@ -47,14 +49,16 @@ public class BoardServiceImpl implements BoardService{
     public BoardDTO readOne(Long bno) {
         // 사용자가 /board/read?bno=100 으로 요청 -> Controller가 boardServce.readOne(100L) 호출
 
-        Optional<Board> result = boardRepository.findById(bno);
+//        Optional<Board> result = boardRepository.findById(bno);
         // DB에서 bno에 해당하는 100번 게시글 찾기
+        Optional<Board> result = boardRepository.findByIdWithImages(bno);
 
         Board board = result.orElseThrow();
         // 찾으면 꺼내서 board에 저장
 
-        BoardDTO boardDTO = modelMapper.map(board, BoardDTO.class);
+//        BoardDTO boardDTO = modelMapper.map(board, BoardDTO.class);
         // board -> BoardDTO 변환
+        BoardDTO boardDTO = entityToDTO(board);
 
         return boardDTO; // 최종적으로 Controller로 반환
     }
@@ -71,6 +75,17 @@ public class BoardServiceImpl implements BoardService{
 
         board.change(boardDTO.getTitle(), boardDTO.getContent());
         // ★ Board Entity의 change() 메서드로 내용 변경
+
+        // 첨부파일의 처리 : 기존 게시물에 연결되어있던 이미지들을 지우고,
+        // 수정화면에서 새로 전달받은 이미지 목록으로 다시 구성한다.
+        board.clearImages(); // Board 메서드
+
+        if(boardDTO.getFileNames() != null){
+            for (String fileName : boardDTO.getFileNames()) {
+                String[] arr = fileName.split("_");
+                board.addImage(arr[0], arr[1]);
+            }
+        } // 파일 이름 하나씩 꺼내서 fileName에 담고 새로운 BoardImage를 Board에 추가
 
         boardRepository.save(board);
         // JpaRepository가 제공하는 save() 메서드 : Repository에 저장
@@ -117,7 +132,7 @@ public class BoardServiceImpl implements BoardService{
         // -> Controller에서 PageResponseDTO<BoardDTO> responseDTO 사용 가능
     }
 
-    /* 게시글 전체 + 댓글 개수 목록 */
+    /* 업그레이드 : 게시글 전체 + 댓글 개수 목록 */
     @Override
     public PageResponseDTO<BoardListReplyCountDTO> listWithReplyCount(PageRequestDTO pageRequestDTO) {
 
@@ -134,8 +149,22 @@ public class BoardServiceImpl implements BoardService{
                 .build();
     }
 
+    /* ★ 완결판 : 게시글 전체 + 댓글 개수 + 썸네일 */
     @Override
     public PageResponseDTO<BoardListAllDTO> listWithAll(PageRequestDTO pageRequestDTO) {
-        return null;
+
+        // 사용자가 목록 화면에 입력한 검색 조건 가져오기
+        String[] types = pageRequestDTO.getTypes(); // types = ["t", "c"]
+        String keyword = pageRequestDTO.getKeyword(); // keyword = "스프링"
+        Pageable pageable = pageRequestDTO.getPageable("bno"); // bno 기준으로 페이지 정렬
+
+        // Repository에 실제 조회 요청
+        Page<BoardListAllDTO> result = boardRepository.searchWithAll(types, keyword, pageable);
+
+        return PageResponseDTO.<BoardListAllDTO>withAll() // BoardListAllDTO를 담을 PageResponseDTO를 만들겠다.
+                .pageRequestDTO(pageRequestDTO) // 현재 페이지/검색 조건 등의 요청 정보를 넣음
+                .dtoList(result.getContent()) // 실제 검색 결과 게시글 목록을 넣음
+                .total((int)result.getTotalElements()) // 전체 게시글 개수를 넣음
+                .build(); // 최종 DTO 생성
     }
 }

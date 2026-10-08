@@ -19,4 +19,5 @@ public interface ReplyRepository
     // r.board.bno : Reply가 가지고 있는 Board의 bno
 
     void deleteByBoard_Bno(Long bno);
+    // 게시글 지우면 댓글도 함께 지우는 기능
 }

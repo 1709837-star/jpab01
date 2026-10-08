@@ -1,13 +1,14 @@
 package com.example.jpab01.controller;
 /* 사용자의 요청을 처음 받는 곳 */
-import com.example.jpab01.dto.BoardDTO;
-import com.example.jpab01.dto.BoardListReplyCountDTO;
-import com.example.jpab01.dto.PageRequestDTO;
-import com.example.jpab01.dto.PageResponseDTO;
+import com.example.jpab01.dto.*;
 import com.example.jpab01.service.BoardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -16,11 +17,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.util.List;
+
 @Controller
 @RequestMapping("/board")
 @Log4j2
 @RequiredArgsConstructor // BoardService 생성자 생성
 public class BoardController {
+
+    // 경로 주입 (injection)
+    @Value("${user.home}/upload")
+    private String uploadPath;
 
     private final BoardService boardService;
 
@@ -30,9 +39,13 @@ public class BoardController {
     // PageRequestDTO : 사용자가 URl로 보낸 페이지/검색 관련 정보를 받아옴 ex) page=2&size=10&type=t&keyword=스프링
     // Model : HTML에 데이터를 전달하는 통로
 
-        PageResponseDTO<BoardListReplyCountDTO> responseDTO =
-                boardService.listWithReplyCount(pageRequestDTO);
+//        PageResponseDTO<BoardListReplyCountDTO> responseDTO =
+//                boardService.listWithReplyCount(pageRequestDTO);
         // "Service야, 게시글 전체 목록 + 댓글 개수가 필요해."
+
+        PageResponseDTO<BoardListAllDTO> responseDTO =
+                boardService.listWithAll(pageRequestDTO);
+        // + 첨부파일까지!
 
         log.info(responseDTO);
 
@@ -43,6 +56,7 @@ public class BoardController {
 
     /* 게시글 등록 */
         /* 등록 버튼 누르기 전 */
+    @PreAuthorize("hasRole('USER')")
     @GetMapping("/register")
     public void registerGET(){ // 그냥 등록 화면 보여주기만 하면 되니까 코드 x
 
@@ -77,6 +91,7 @@ public class BoardController {
 
 
     /* 게시글 상세 조회 */
+    @PreAuthorize("isAuthenticated()") // 로그인한 사용자만 이 메서드를 실행 가능
     @GetMapping({"/read", "/modify"})
     public void read(Long bno, PageRequestDTO pageRequestDTO, Model model){
         // 사용자가 /board/read?bno=100 요청하면 Spring이 Long bno에 100 넣어줌
@@ -91,6 +106,8 @@ public class BoardController {
     }
 
     /* 수정 버튼 누르고 난 후 */
+    @PreAuthorize("principal.username == #boardDTO.writer")
+    // 현재 로그인한 사용자의 username과 게시글 작성자가 같은 경우에만 이 메서드를 실행 (버튼을 없애는 것 뿐만 아니라 2중으로 막는 구조)
     @PostMapping("/modify")
     public String modify( PageRequestDTO pageRequestDTO,
                           @Valid BoardDTO boardDTO,
@@ -121,18 +138,61 @@ public class BoardController {
     }
 
     /* 삭제 버튼 누르고 난 후 */
-    @PostMapping("/remove")
-    public String remove(Long bno, RedirectAttributes redirectAttributes) {
+//    @PostMapping("/remove")
+//    public String remove(Long bno, RedirectAttributes redirectAttributes) {
+//
+//        log.info("remove post.. " + bno);
+//
+//        boardService.remove(bno);
+//
+//        redirectAttributes.addFlashAttribute("result", "removed");
+//
+//        return "redirect:/board/list";
+//    }
 
+    @PostMapping("/remove")
+    public String remove(BoardDTO boardDTO, RedirectAttributes redirectAttributes) {
+
+        Long bno = boardDTO.getBno();
         log.info("remove post.. " + bno);
 
         boardService.remove(bno);
 
+        //게시물이 삭제되었다면 첨부 파일 삭제
+        log.info(boardDTO.getFileNames());
+        List<String> fileNames = boardDTO.getFileNames();
+        if(fileNames != null && fileNames.size() > 0){
+            removeFiles(fileNames);
+        }
+
         redirectAttributes.addFlashAttribute("result", "removed");
 
         return "redirect:/board/list";
-
     }
 
+    /* 파일 삭제 메소드 */
+    public void removeFiles(List<String> files){
+
+        for (String fileName:files) {
+
+            Resource resource = new FileSystemResource(uploadPath + File.separator + fileName);
+            String resourceName = resource.getFilename();
+
+            try {
+                String contentType = Files.probeContentType(resource.getFile().toPath());
+                resource.getFile().delete();
+
+                //섬네일이 존재한다면
+                if (contentType.startsWith("image")) {
+                    File thumbnailFile = new File(uploadPath + File.separator + "s_" + fileName);
+                    thumbnailFile.delete();
+                }
+
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+
+        }//end for
+    }
 
 }

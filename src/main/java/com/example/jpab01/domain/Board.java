@@ -49,15 +49,16 @@ public class Board extends BaseEntity {
                 cascade = {CascadeType.ALL},
                 // 학과코드를 학생테이블에 외래키로 들고 올 때, 학과테이블에서 하나의 학과 코드를 다 지우면 오류가 남! 이걸 가능하게 하는 코드
                 fetch = FetchType.LAZY,
-                orphanRemoval = true)
                 // 일단 조회하지 않고 있다가 코드에서 imageSet을 사용하면 그 때 이미지를 다룸!
+                orphanRemoval = true)
+                // 소속된 bno가 없으면 (고아)들은 들어내라 : bno=null 날라감
     @Builder.Default
-    @BatchSize(size=20)
+    @BatchSize(size=20) // ★ batch : 일괄로 한 번에 들고 옴
     private Set<BoardImage> imageSet = new HashSet<>();
     // "Board 하나가 여러 개의 BoardImage를 가지고 있네?" (1:N 관계)
     // BUT, DB에는 Set, HashSet, List 같은 자료 구조가 x
     // -> JPA가 관계를 DB에 저장하기 위한 방법을 만들어야 함
-    // -> 중간 테이블(조인 테이블) : board_image_set
+    // -> 중간 테이블(조인 테이블) : board_image_set깔
 
     // board_image : BoardImage 자체를 저장하는 테이블
     // board_image_set : "어떤 Board가 어떤 BoardImage를 갖고 있는가?" - 양방향 참조

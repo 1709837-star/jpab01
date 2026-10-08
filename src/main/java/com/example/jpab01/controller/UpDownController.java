@@ -29,11 +29,11 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UpDownController {
 
-    @Value("${com.example.upload.path}")
+    @Value("${com.example.upload.path}") // import 시에 springframework으로 시작하는 Value
     private String uploadPath;
 
     @Operation(summary = "파일 업로드")
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value= "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public List<UploadResultDTO> upload(UploadFileDTO uploadFileDTO) {
         log.info("upload: {}", uploadFileDTO);
 
@@ -42,24 +42,22 @@ public class UpDownController {
             final List<UploadResultDTO> list = new ArrayList<>();
 
             uploadFileDTO.getFiles().forEach(multipartFile -> {
-                String originalName = multipartFile.getOriginalFilename();
+                String originalName = multipartFile.getOriginalFilename(); // 서버 콘솔에 파일명 출력
                 log.info(originalName);
 
                 String uuid = UUID.randomUUID().toString(); // 중복 위험 없는 큰 숫자 생성
                 Path savePath = Paths.get(uploadPath, uuid+"_"+ originalName);
 
-                boolean image = false;
+                boolean image = false; // 기본은 이미지인지 아닌지 모르고, 밑 if 문에서 설정
 
                 try {
-                    multipartFile.transferTo(savePath); // 실제파일 저장
+                    multipartFile.transferTo(savePath); // 실제파일 물리적으로 저장
 
                     // 이미지 파일의 종류라면
                     if(Files.probeContentType(savePath).startsWith("image")) {
 
                         image = true;
-
                         File thumbFile = new File(uploadPath, "s_" + uuid + "_" + originalName);
-
                         Thumbnailator.createThumbnail(savePath.toFile(),thumbFile, 200, 200);
                     }
 
@@ -81,7 +79,7 @@ public class UpDownController {
     }
 
     @Operation(summary = "첨부파일 조회")
-    @GetMapping("/view/{fileName}")
+    @GetMapping("/{fileName}")
     public ResponseEntity<Resource> viewFile(@PathVariable("fileName") String fileName) {
 
         Resource resource = new FileSystemResource(uploadPath + File.separator + fileName);

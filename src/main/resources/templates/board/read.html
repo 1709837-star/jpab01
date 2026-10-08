@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layout/basic.html}">
 
 <head>
@@ -43,12 +44,13 @@
                         <input type="text" class="form-control" th:value="${#temporals.format(dto.modDate, 'yyyy-MM-dd HH:mm:ss')}" readonly>
                     </div>
 
-                    <div class="my-4">
+                    <div class="my-4" th:with="user=${#authentication.principal}"> <!-- 현재 로그인한 사용자의 정보를 user이라는 이름으로 잠깐 저장해서 사용하겠다. -->
                         <div class="float-end" th:with="link = ${pageRequestDTO.getLink()}">
                             <a th:href="|@{/board/list}?${link}|" class="text-decoration-none">
                                 <button type="button" class="btn btn-primary">List</button>
                             </a>
-                            <a th:href="|@{/board/modify(bno=${dto.bno})}&${link}|" class="text-decoration-none">
+                            <a th:href="|@{/board/modify(bno=${dto.bno})}&${link}|" class="text-decoration-none"
+                                th:if="${user != null && user.username == dto.writer}">
                                 <button type="button" class="btn btn-secondary">Modify</button>
                             </a>
                         </div>
@@ -57,7 +59,13 @@
 
                 </div><!--end card body-->
 
-
+                <div class="col">
+                    <div class="card" th:if="${dto.fileNames != null && dto.fileNames.size() > 0}">
+                        <img class="card-img-top"
+                             th:each="fileName: ${dto.fileNames}"
+                             th:src="|/upload/${fileName}|">
+                    </div>
+                </div>
 
             </div><!--end card-->
         </div><!-- end col-->
@@ -96,9 +104,9 @@
                         <span class="input-group-text">Reply Text</span>
                         <input type="text" class="form-control replyText" >
                     </div>
-                    <div class="input-group mb-3">
+                    <div class="input-group mb-3" th:with="user=${#authentication.principal}">
                         <span class="input-group-text">Replyer</span>
-                        <input type="text" class="form-control replyer" >
+                        <input type="text" class="form-control replyer" th:value="${user.username}" readonly>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -141,6 +149,8 @@
 
 
 <script layout:fragment="script" th:inline="javascript">
+
+        const currentUser = [[${#authentication.principal.username}]]
 
         const bno = [[${dto.bno}]]
         // Thymeleaf가 서버에서 html 만들어줄 때 dto.bno=10이라고 하면 const bno=10 이 만들어짐
@@ -299,6 +309,8 @@
         const removeBtn = document.querySelector(".removeBtn")
         const closeModifyBtn = document.querySelector(".closeModifyBtn")
 
+        let hasAuth = false // 현재 사용자가 이 댓글을 수정/삭제할 권한이 있는가?
+
         replyList.addEventListener("click", function (e){
         // 댓글 클릭하면 실행
             e.preventDefault()
@@ -325,12 +337,22 @@
                 modifyModal.show()
                 // 모달에 댓글 번호와 내용을 넣어줌
 
+                // 댓글의 작성자와 현재 사용자 일치 여부 확인
+                hasAuth = currentUser === reply.replyer
+                // "이 댓글 작성자가 현재 로그인한 정보와 같은가?"
+
             }).catch(e => alert('error'))
 
         },false)
 
         /* ★★★ 댓글 수정 버튼 ★★★ */
         modifyBtn.addEventListener("click", function(e) {
+
+            if(!hasAuth) { // hasAuth이 false일 때
+                alert("댓글 작성자만 수정이 가능합니다.")
+                modifyModal.hide()
+                return
+            }
 
             const replyObj = {
                 bno:bno,
@@ -360,6 +382,13 @@
 
         /* ★★★ 삭제 버튼 ★★★ */
         removeBtn.addEventListener("click", function(e) {
+
+            if(!hasAuth) {
+                alert("댓글 작성자만 삭제가 가능합니다.")
+                modifyModal.hide()
+                return
+            }
+
             console.log("삭제할 rno =", replyHeader.innerHTML)
 
             removeReply(replyHeader.innerHTML).then(result => {

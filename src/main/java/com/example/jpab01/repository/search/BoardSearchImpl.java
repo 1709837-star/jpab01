@@ -142,7 +142,7 @@ public class BoardSearchImpl extends QuerydslRepositorySupport
         return new PageImpl<>(dtoList, pageable, count); // QueryDSL에서 가져온 결과를 Spring Data의 Page 형태로 포장
     }
 
-    /* List 처리 테스트를 위한 메소드 */
+    /* ★ 최종판 : 검색 조건 + 댓글 수 + 게시글 이미지 목록까지 ★ */
     @Override
 //    public Page<BoardListReplyCountDTO> searchWithAll(String[] types,
 //                                                      String keyword,
@@ -155,30 +155,49 @@ public class BoardSearchImpl extends QuerydslRepositorySupport
         QBoard board = QBoard.board; // 각 Entity를 QueryDSL에서 사용할 수 있도록 가져옴
         QReply reply = QReply.reply;
 
-        JPQLQuery<Board> boardJPQLQuery = from(board);
+        JPQLQuery<Board> boardJPQLQuery = from(board); // Board를 기준으로 QueryDSL 조회를 시작한다.
         boardJPQLQuery.leftJoin(reply).on(reply.board.eq(board));
         // ★ 게시글과 댓글을 연결 : leftjoin - 댓글이 없는 게시글도 결과에 포함
 
-        boardJPQLQuery.groupBy(board);
+        /* 검색 조건 적용 */
+        if( (types != null && types.length > 0) && keyword != null ){
 
-        getQuerydsl().applyPagination(pageable, boardJPQLQuery); //paging
+            BooleanBuilder booleanBuilder = new BooleanBuilder(); // 검색 조건을 담아놓는 통
 
-//        List<Board> boardList = boardJPQLQuery.fetch();
-//
-//        boardList.forEach(board1 -> {
-//            System.out.println(board1.getBno());
-//            System.out.println(board1.getImageSet());
-//            System.out.println("--------------------");
-//        });
+            for(String type: types){ // types = ["t", "c", "w"], types 배열에 들어있는 값을 하나씩 꺼내면서 비교
 
+                switch (type){ // 위 메소드 참고
+                    case "t":
+                        booleanBuilder.or(board.title.contains(keyword));
+                        break;
+                    case "c":
+                        booleanBuilder.or(board.content.contains(keyword));
+                        break;
+                    case "w":
+                        booleanBuilder.or(board.writer.contains(keyword));
+                        break;
+                }
+            }//end for
+            boardJPQLQuery.where(booleanBuilder);
+        }
+
+        /* 댓글 수 계산 */
+        boardJPQLQuery.groupBy(board); // 게시글 별로 그룹 만들기 ex) Board1 댓글 3개, Board2 댓글 0개, Board3 댓글 1개 ㄱ
+
+        /* 페이징 처리 */
+        getQuerydsl().applyPagination(pageable, boardJPQLQuery);
+
+        /* Board + 댓글 수 조회 */
         JPQLQuery<Tuple> tupleJPQLQuery = boardJPQLQuery.select(board, reply.countDistinct());
+        // Tuple : 조회 결과를 여러 종류로 묶어서 가져오는 임시 상자. select() 안에 있는 걸 가져옴 -> 게시글 + 댓글 개수
 
-        List<Tuple> tupleList = tupleJPQLQuery.fetch();
-        List<BoardListAllDTO> dtoList = tupleList.stream().map(tuple -> {
+        List<Tuple> tupleList = tupleJPQLQuery.fetch(); // DB에서 실제로 가져오기
+        List<BoardListAllDTO> dtoList = tupleList.stream().map(tuple -> { // 각 Tuple을 하나씩 꺼내서 DTO로 바꿈
 
-            Board board1 = (Board) tuple.get(board);
-            long replyCount = tuple.get(1, Long.class);
+            Board board1 = (Board) tuple.get(board); // Tuple 안에서 Board를 꺼내서 board1에 게시글 Entity 저장
+            long replyCount = tuple.get(1, Long.class); // Tuple의 두 번째 값, 댓글 개수 가져옴
 
+            /* DTO 생성 */
             BoardListAllDTO dto = BoardListAllDTO.builder()
                     .bno(board1.getBno())
                     .title(board1.getTitle())
@@ -187,7 +206,7 @@ public class BoardSearchImpl extends QuerydslRepositorySupport
                     .replyCount(replyCount)
                     .build();
 
-            //BoardImage를 BoardImageDTO 처리할 부분
+            /* 이미지 처리 */
             List<BoardImageDTO> imageDTOS = board1.getImageSet().stream().sorted()
                     .map(boardImage -> BoardImageDTO.builder()
                             .uuid(boardImage.getUuid())
@@ -195,14 +214,19 @@ public class BoardSearchImpl extends QuerydslRepositorySupport
                             .ord(boardImage.getOrd())
                             .build()
                     ).collect(Collectors.toList());
+            // Board 안에 있는 imageSet 가져와서 -> sorted로 이미지들 정렬(순서)
+            // -> DTO로 변경 -> collect로 List []로 모음
 
-            dto.setBoardImages(imageDTOS);
+            dto.setBoardImages(imageDTOS); // 최종 DTO 만들어짐
 
-            return dto;
-        }).collect(Collectors.toList());
+            return dto; // 게시글 하나에 대한 완성된 DTO를 반환
+        }).collect(Collectors.toList()); // -> 모든 게시글을 모아서 List<BoardListAllDTO>로 만듦
 
+        /* 전체 게시글 개수 */
         long totalCount = boardJPQLQuery.fetchCount();
 
+        /* 최종 결과를 Page 형태로 포장 */
         return new PageImpl<>(dtoList, pageable, totalCount);
+        // -> Controller은 Page<BoardListAllDTO>를 받게 됨
     }
 }
